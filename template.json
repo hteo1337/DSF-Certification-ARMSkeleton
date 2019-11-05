@@ -1,0 +1,678 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01-preview/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vmSku": {
+            "type": "string",
+            "defaultValue": "Standard_A2",
+            "metadata": {
+                "description": "Size of VMs in the VM Scale Set."
+            }
+        },
+        "vmssName": {
+            "value": "VMSS-UiPath-Certification"
+        },
+        "instanceCount": {
+            "type": "int",
+            "defaultValue": 2,
+        "metadata": {
+                "description": "Number of VM instances."
+            },
+            "maxValue": 2
+        },
+        "adminUsernameOrc": {
+            "type": "string",
+            "metadata": {
+                "description": "Admin username on all VMs."
+            }
+        },
+        "adminPasswordOrc": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Admin password on all VMs."
+            }
+        },
+        "existingManagedImageResourceGroup": {
+            "value": "ManagedImages-Group"
+        },
+        "existingManagedImageName": {
+            "value": "changeme"
+        },
+        "dnsSuffixHA": {
+            "type": "String",
+            "metadata": {
+                "description": "DNS suffix name for VM"
+            }
+        },
+        "adminUsernameHA": {
+            "type": "String",
+            "metadata": {
+                "description": "Admin username for HA VM"
+            }
+        },
+        "adminEmail": {
+            "type": "String",
+            "metadata": {
+                "description": "Admin email for Redis"
+            }
+        },
+        "haAdminPassword": {
+            "type": "String",
+            "metadata": {
+                "description": "HA admin management CLI password "
+            }
+        },
+        "adminPassword": {
+            "type": "SecureString",
+            "metadata": {
+                "description": "Admin password for HA VMs"
+            }
+        },
+        "numberOfHaSlaveInstances": {
+            "defaultValue": 2,
+            "allowedValues": [
+                2
+            ],
+            "type": "Int",
+            "metadata": {
+                "description": "Number of VMs to deploy"
+            }
+        },
+        "deployOnlyMaster": {
+            "defaultValue": "yes",
+            "allowedValues": [
+                "yes",
+                "no"
+            ],
+            "type": "String"
+        },
+        "license": {
+            "defaultValue": "",
+            "type": "String",
+            "metadata": {
+                "description": "HA Addon license key"
+            }
+        },
+        "OS": {
+            "defaultValue": "RHEL",
+            "allowedValues": [
+                "RHEL"
+            ],
+            "type": "String",
+            "metadata": {
+                "description": "OS Platform for the VM"
+            }
+        },
+        "administratorLogin": {
+            "type": "string"
+        },
+        "administratorLoginPassword": {
+            "type": "securestring"
+        },
+        "collation": {
+            "type": "string"
+        },
+        "databaseName": {
+            "type": "string"
+        },
+        "tier": {
+            "type": "string"
+        },
+        "skuName": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string"
+        },
+        "maxSizeBytes": {
+            "type": "int"
+        },
+        "serverName": {
+            "type": "string"
+        },
+        "zoneRedundant": {
+            "type": "bool",
+            "defaultValue": false
+        },
+        "minCapacity": {
+            "type": "string",
+            "defaultValue": "50"
+        }
+    },
+    "variables": {
+        "namingInfix": "[toLower(substring(concat(parameters('vmssName'), uniqueString(resourceGroup().id)), 0, 9))]",
+        "addressPrefix": "10.0.0.0/16",
+        "subnetPrefix": "10.0.8.0/21",
+        "virtualNetworkName": "dsf-project-test-vnet",
+        "subnetName": "[concat(variables('namingInfix'), 'subnet')]",
+        "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets',variables('virtualNetworkName'),variables('subnetName'))]",
+        "nicName": "[concat(variables('namingInfix'), 'nic')]",
+        "ipConfigName": "[concat(variables('namingInfix'), 'ipconfig')]",
+        "managedImageId": "[resourceId(parameters('existingManagedImageResourceGroup'), 'Microsoft.Compute/images', parameters('existingManagedImageName'))]",
+        "appGwPublicIPAddressName": "[concat(variables('namingInfix'), 'appGwPip')]",
+        "appGwName": "[concat(variables('namingInfix'), 'appGw')]",
+        "appGwPublicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',variables('appGwPublicIPAddressName'))]",
+        "appGwID": "[resourceId('Microsoft.Network/applicationGateways',variables('appGwName'))]",
+        "appGwSubnetName": "[concat(variables('namingInfix'),'appGwSubnet')]",
+        "appGwSubnetPrefix": "10.0.1.0/24",
+        "appGwSubnetID": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('appGwSubnetName'))]",
+        "appGwFrontendPort": 80,
+        "appGwBackendPort": 80,
+        "appGwBePoolName": "[concat(variables('namingInfix'), 'appGwBepool')]",
+        "vm-prefix": "redis",
+        "location": "[resourceGroup().location]",
+        "availabilitySetName": "HAset",
+        "RHEL": {
+            "publisher": "RedHat",
+            "offer": "RHEL",
+            "sku": "7-LVM",
+            "version": "latest"
+        },
+        "imageReference": "[variables(parameters('OS'))]",
+        "public-ipName": "redis-pip",
+        "redis-CSEScript": "http://download.uipath.com/haa/get-haa.sh",
+        "redis-CSEScriptFileName": "get-haa.sh",
+        "master-nodeVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
+        "master-nodeSubnetRef": "[concat(variables('master-nodeVnetID'), '/subnets/', variables('subnetName'))]",
+        "sqlserverName": "[trim(toLower(parameters('sqlserverName')))]",
+        "databaseName": "[ toLower(parameters('databaseName'))]",
+        "collation": "SQL_Latin1_General_CP1_CI_AS",
+        "subscriptionId": "[subscription().subscriptionId]",
+        "resourceGroupName": "[resourceGroup().name]",
+        "uniqueStorage": "[uniqueString(variables('subscriptionId'), variables('resourceGroupName'), parameters('location'))]",
+        "storageName": "[tolower(concat('sqlva', variables('uniqueStorage')))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/availabilitySets",
+            "apiVersion": "2019-03-01",
+            "name": "[variables('availabilitySetName')]",
+            "location": "[variables('location')]",
+            "sku": {
+                "name": "Aligned"
+            },
+            "properties": {
+                "platformFaultDomainCount": 2,
+                "platformUpdateDomainCount": 2
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2019-08-01",
+            "name": "redis-nsg",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "SSH",
+                        "properties": {
+                            "description": "Allows SSH traffic",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "Redis",
+                        "properties": {
+                            "description": "Allows Redis traffic",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "8443-9443",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 110,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('virtualNetworkName')]",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2019-09-01",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('addressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnetPrefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups/', 'redis-nsg')]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "[variables('appGwSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('appGwSubnetPrefix')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2019-04-01",
+            "name": "[concat(variables('vm-prefix'),'-nic', copyindex(1))]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('virtualNetworkName')]",
+                "[concat('Microsoft.Network/networkSecurityGroups/','redis-nsg')]",
+                "[resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('public-ipName'),copyIndex(1)))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId(resourceGroup().name,'Microsoft.Network/publicIPAddresses', concat(variables('public-ipName'),copyIndex(1)))]"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups/', 'redis-nsg')]"
+                }
+            },
+            "copy": {
+                "name": "nicLoop",
+                "count": "[parameters('numberOfInstances')]"
+            },
+            "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-03-01",
+            "name": "[concat(variables('vm-prefix'), copyIndex(1))]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "nicLoop",
+                "[concat('Microsoft.Compute/virtualMachines/', concat(variables('vm-prefix'),'-master'))]"
+            ],
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "Standard_D2s_v3"
+                },
+                "osProfile": {
+                    "computerName": "[concat(variables('vm-prefix'), copyIndex(1))]",
+                    "adminUsername": "[parameters('adminUsernameHA')]",
+                    "adminPassword": "[parameters('adminPasswordHA')]"
+                },
+                "storageProfile": {
+                    "imageReference": "[variables('imageReference')]",
+                    "osDisk": {
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkInterfaces',concat(variables('vm-prefix'),'-nic', copyindex(1)))]"
+                        }
+                    ]
+                }
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "apiVersion": "2019-03-01",
+                    "name": "redis-CSE",
+                    "location": "[variables('location')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('vm-prefix'), copyIndex(1)))]",
+                        "master-cse"
+                    ],
+                    "tags": {
+                        "displayName": "redis-CSE"
+                    },
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "fileUris": [
+                                "[variables('redis-CSEScript')]"
+                            ],
+                            "commandToExecute": "[concat('sh ', variables('redis-CSEScriptFileName'),' -u ', parameters('adminEmail'),' -p ',parameters('haAdminPassword'),' -j ',reference(concat('Microsoft.Network/networkInterfaces/', variables('vm-prefix'),'-master-nic')).ipConfigurations[0].properties.privateIPAddress)]"
+                        }
+                    },
+                    "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
+                }
+            ],
+            "copy": {
+                "name": "virtualMachineLoop",
+                "count": "[parameters('numberOfInstances')]"
+            },
+            "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2019-04-01",
+            "name": "[concat(variables('vm-prefix'),'-master-nic')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('virtualNetworkName')]",
+                "[concat('Microsoft.Network/networkSecurityGroups/','redis-nsg')]",
+                "[resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('vm-prefix'),'-master-pip'))]"
+            ],
+            "tags": {
+                "displayName": "[concat(variables('vm-prefix'),'-master-nic')]"
+            },
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('subnet1Ref')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('vm-prefix'),'-master-pip'))]"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups/', 'redis-nsg')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-03-01",
+            "name": "[concat(variables('vm-prefix'),'-master')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat(variables('vm-prefix'),'-master-nic')]",
+                "[concat('Microsoft.Network/networkSecurityGroups/','redis-nsg')]"
+            ],
+            "tags": {
+                "displayName": "master-node"
+            },
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "Standard_D2s_v3"
+                },
+                "osProfile": {
+                    "computerName": "[concat(variables('vm-prefix'),'-master')]",
+                    "adminUsername": "[parameters('adminUsernameHA')]",
+                    "adminPassword": "[parameters('adminPasswordHA')]"
+                },
+                "storageProfile": {
+                    "imageReference": "[variables('imageReference')]",
+                    "osDisk": {
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkInterfaces',concat(variables('vm-prefix'),'-master-nic'))]"
+                        }
+                    ]
+                }
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "apiVersion": "2019-03-01",
+                    "name": "master-cse",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('vm-prefix'),'-master'))]"
+                    ],
+                    "tags": {
+                        "displayName": "master-cse"
+                    },
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "fileUris": [
+                                "[variables('redis-CSEScript')]"
+                            ],
+                            "commandToExecute": "[concat('sh ', variables('redis-CSEScriptFileName'),' -u ', parameters('adminEmail'),' -p ',parameters('haAdminPassword'),' -l ',parameters('license'))]"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2019-04-01",
+            "name": "[concat(variables('vm-prefix'),'-master-pip')]",
+            "location": "[variables('location')]",
+            "dependsOn": [],
+            "tags": {
+                "displayName": "master-node-pip"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(parameters('dnsSuffix'),'-master')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('appGwPublicIPAddressName')]",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2019-09-01",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic"
+            }
+        },
+        {
+            "type": "Microsoft.Network/applicationGateways",
+            "name": "[variables('appGwName')]",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2019-09-01",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('appGwPublicIPAddressName'))]"
+            ],
+            "properties": {
+                "sku": {
+                    "name": "Standard_Large",
+                    "tier": "Standard",
+                    "capacity": "10"
+                },
+                "gatewayIPConfigurations": [
+                    {
+                        "name": "appGwIpConfig",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('appGwSubnetID')]"
+                            }
+                        }
+                    }
+                ],
+                "frontendIPConfigurations": [
+                    {
+                        "name": "appGwFrontendIP",
+                        "properties": {
+                            "PublicIPAddress": {
+                                "id": "[variables('appGwPublicIPAddressID')]"
+                            }
+                        }
+                    }
+                ],
+                "frontendPorts": [
+                    {
+                        "name": "appGwFrontendPort",
+                        "properties": {
+                            "Port": "[variables('appGwFrontendPort')]"
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "[variables('appGwBePoolName')]"
+                    }
+                ],
+                "backendHttpSettingsCollection": [
+                    {
+                        "name": "appGwBackendHttpSettings",
+                        "properties": {
+                            "Port": "[variables('appGwBackendPort')]",
+                            "Protocol": "Http",
+                            "CookieBasedAffinity": "Disabled"
+                        }
+                    }
+                ],
+                "httpListeners": [
+                    {
+                        "name": "appGwHttpListener",
+                        "properties": {
+                            "FrontendIPConfiguration": {
+                                "Id": "[concat(variables('appGwID'), '/frontendIPConfigurations/appGwFrontendIP')]"
+                            },
+                            "FrontendPort": {
+                                "Id": "[concat(variables('appGwID'), '/frontendPorts/appGwFrontendPort')]"
+                            },
+                            "Protocol": "Http",
+                            "SslCertificate": null
+                        }
+                    }
+                ],
+                "requestRoutingRules": [
+                    {
+                        "Name": "rule1",
+                        "properties": {
+                            "RuleType": "Basic",
+                            "httpListener": {
+                                "id": "[concat(variables('appGwID'), '/httpListeners/appGwHttpListener')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[concat(variables('appGwID'), '/backendAddressPools/', variables('appGwBePoolName'))]"
+                            },
+                            "backendHttpSettings": {
+                                "id": "[concat(variables('appGwID'), '/backendHttpSettingsCollection/appGwBackendHttpSettings')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachineScaleSets",
+            "name": "[variables('namingInfix')]",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2019-07-01",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
+                "[concat('Microsoft.Network/applicationGateways/', variables('appGwName'))]"
+            ],
+            "sku": {
+                "name": "[parameters('vmSku')]",
+                "tier": "Standard",
+                "capacity": "[parameters('instanceCount')]"
+            },
+            "properties": {
+                "overprovision": "true",
+                "singlePlacementGroup": "false",
+                "upgradePolicy": {
+                    "mode": "Automatic"
+                },
+                "virtualMachineProfile": {
+                    "storageProfile": {
+                        "imageReference": {
+                            "id": "[variables('managedImageId')]"
+                        }
+                    },
+                    "osProfile": {
+                        "computerNamePrefix": "[variables('namingInfix')]",
+                        "adminUsername": "[parameters('adminUsernameOrc')]",
+                        "adminPassword": "[parameters('adminPasswordOrc')]"
+                    },
+                    "networkProfile": {
+                        "networkInterfaceConfigurations": [
+                            {
+                                "name": "[variables('nicName')]",
+                                "properties": {
+                                    "primary": true,
+                                    "ipConfigurations": [
+                                        {
+                                            "name": "[variables('ipConfigName')]",
+                                            "properties": {
+                                                "subnet": {
+                                                    "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'), '/subnets/', variables('subnetName'))]"
+                                                },
+                                                "ApplicationGatewayBackendAddressPools": [
+                                                    {
+                                                        "id": "[concat('/subscriptions/', subscription().subscriptionId,'/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/applicationGateways/', variables('appGwName'), '/backendAddressPools/', variables('appGwBePoolName'))]"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "2015-05-01-preview",
+            "location": "[parameters('location')]",
+            "name": "[variables('sqlserverName')]",
+            "properties": {
+                "administratorLogin": "[parameters('sqladministratorLogin')]",
+                "administratorLoginPassword": "[parameters('sqladministratorLoginPassword')]",
+                "version": "12.0"
+            },
+            "resources": [
+                {
+                    "apiVersion": "2017-10-01-preview",
+                    "dependsOn": [
+                        "[concat('Microsoft.Sql/servers/', variables('sqlserverName'))]"
+                    ],
+                    "location": "[parameters('location')]",
+                    "name": "[variables('databaseName')]",
+                    "properties": {
+                        "collation": "[variables('collation')]",
+                        "maxSizeBytes": "[parameters('maxSizeBytes')]",
+                        "zoneRedundant": "[parameters('zoneRedundant')]",
+                        "minCapacity": "[parameters('minCapacity')]"
+                    },
+                    "sku": {
+                        "name": "[parameters('skuName')]",
+                        "tier": "[parameters('tier')]"
+                    },
+                    "type": "databases"
+                }
+            ],
+            "type": "Microsoft.Sql/servers"
+        }
+    ]
+}
