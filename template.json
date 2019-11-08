@@ -58,7 +58,7 @@
     },
     "variables": {
         "vm-prefix": "redis",
-        "dnsSuffix": "[uniqueString('haaddon',subscription().subscriptionId)]",
+        "dnsSuffix": "[concat(parameters('adminusername'),'-redis')]",
         "location": "[resourceGroup().location]",
         "virtualNetworkName": "dsf-project-test-vnet",
         "addressPrefix": "10.0.0.0/16",
