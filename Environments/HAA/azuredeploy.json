@@ -1,20 +1,20 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "adminusername": {
+        "adminUsername": {
             "type": "String",
             "metadata": {
                 "description": "Admin username for VM"
             }
         },
-        "adminemail": {
+        "adminEmail": {
             "type": "String",
             "metadata": {
                 "description": "Admin email for Redis"
             }
         },
-        "adminpassword": {
+        "adminPassword": {
             "type": "SecureString",
             "metadata": {
                 "description": "Admin password for VMs"
@@ -58,7 +58,7 @@
     },
     "variables": {
         "vm-prefix": "redis",
-        "dnsSuffix": "[concat(parameters('adminusername'),'-redis')]",
+        "dnsSuffix": "[concat(parameters('adminUsername'),'-redis')]",
         "location": "[resourceGroup().location]",
         "virtualNetworkName": "dsf-project-test-vnet",
         "addressPrefix": "10.0.0.0/16",
@@ -211,8 +211,8 @@
                 },
                 "osProfile": {
                     "computerName": "[concat(variables('vm-prefix'), copyIndex(1))]",
-                    "adminUsername": "[parameters('adminusername')]",
-                    "adminPassword": "[parameters('adminpassword')]"
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
                 },
                 "storageProfile": {
                     "imageReference": "[variables('imageReference')]",
@@ -250,7 +250,7 @@
                             "fileUris": [
                                 "[variables('redis-CSEScript')]"
                             ],
-                            "commandToExecute": "[concat('sh ', variables('redis-CSEScriptFileName'),' -u ', parameters('adminemail'),' -p ',parameters('adminpassword'),' -j ',reference(concat('Microsoft.Network/networkInterfaces/', variables('vm-prefix'),'-master-nic')).ipConfigurations[0].properties.privateIPAddress)]"
+                            "commandToExecute": "[concat('sh ', variables('redis-CSEScriptFileName'),' -u ', parameters('adminEmail'),' -p ',parameters('adminPassword'),' -j ',reference(concat('Microsoft.Network/networkInterfaces/', variables('vm-prefix'),'-master-nic')).ipConfigurations[0].properties.privateIPAddress)]"
                         }
                     },
                     "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
@@ -337,8 +337,8 @@
                 },
                 "osProfile": {
                     "computerName": "[concat(variables('vm-prefix'),'-master')]",
-                    "adminUsername": "[parameters('adminusername')]",
-                    "adminPassword": "[parameters('adminpassword')]"
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
                 },
                 "storageProfile": {
                     "imageReference": "[variables('imageReference')]",
@@ -375,7 +375,7 @@
                             "fileUris": [
                                 "[variables('redis-CSEScript')]"
                             ],
-                            "commandToExecute": "[concat('sh ', variables('redis-CSEScriptFileName'),' -u ', parameters('adminemail'),' -p ',parameters('adminpassword'),' -l ',parameters('license'))]"
+                            "commandToExecute": "[concat('sh ', variables('redis-CSEScriptFileName'),' -u ', parameters('adminEmail'),' -p ',parameters('adminPassword'),' -l ',parameters('license'))]"
                         }
                     }
                 }
