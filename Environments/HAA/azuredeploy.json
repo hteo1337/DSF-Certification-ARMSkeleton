@@ -21,38 +21,10 @@
             }
         },
         "dns": {
-            "defaultValue" : "adminUsername-haa.westeurope.cloudapp.azure.com",
+            "defaultValue" : "adminUsername-template",
             "type": "String",
             "metadata": {
-                "description": "DNS preffix"
-            }
-        },
-        "numberOfInstances": {
-            "defaultValue": 2,
-            "allowedValues": [
-                2
-            ],
-            "type": "Int",
-            "metadata": {
-                "description": "Number of VMs to deploy"
-            }
-        },
-        "deployOnlyMaster": {
-            "defaultValue": "yes",
-            "allowedValues": [
-                "yes",
-                "no"
-            ],
-            "type": "String"
-        },
-        "OS": {
-            "defaultValue": "RHEL",
-            "allowedValues": [
-                "RHEL"
-            ],
-            "type": "String",
-            "metadata": {
-                "description": "OS Platform for the VM"
+                "description": "DNS suffix"
             }
         }
     },
@@ -65,14 +37,13 @@
         "subnet1Name": "dsf-project-test-subnet",
         "subnet1Prefix": "10.0.0.0/24",
         "subnet1Ref": "[resourceId('Microsoft.Network/virtualNetworks/subnets',variables('virtualNetworkName'),variables('subnet1Name'))]",
-        "availabilitySetName": "HAset",
         "RHEL": {
             "publisher": "RedHat",
             "offer": "RHEL",
             "sku": "7-LVM",
             "version": "latest"
         },
-        "imageReference": "[variables(parameters('OS'))]",
+        "imageReference": "[variables('RHEL')]",
         "public-ipName": "haa-pip",
         "haa-CSEScript": "http://download.uipath.com/haa/get-haa.sh",
         "haa-CSEScriptFileName": "get-haa.sh",
@@ -80,19 +51,6 @@
         "master-nodeSubnetRef": "[concat(variables('master-nodeVnetID'), '/subnets/', variables('subnet1Name'))]"
     },
     "resources": [
-        {
-            "type": "Microsoft.Compute/availabilitySets",
-            "apiVersion": "2019-03-01",
-            "name": "[variables('availabilitySetName')]",
-            "location": "[variables('location')]",
-            "sku": {
-                "name": "Aligned"
-            },
-            "properties": {
-                "platformFaultDomainCount": 2,
-                "platformUpdateDomainCount": 2
-            }
-        },
         {
             "type": "Microsoft.Network/networkSecurityGroups",
             "apiVersion": "2019-08-01",
@@ -161,131 +119,6 @@
         {
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2019-04-01",
-            "name": "[concat(variables('vm-prefix'),'-nic', copyindex(1))]",
-            "location": "[variables('location')]",
-            "dependsOn": [
-                "[variables('virtualNetworkName')]",
-                "[concat('Microsoft.Network/networkSecurityGroups/','haa-nsg')]",
-                "[resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('public-ipName'),copyIndex(1)))]"
-            ],
-            "properties": {
-                "ipConfigurations": [
-                    {
-                        "name": "ipconfig1",
-                        "properties": {
-                            "privateIPAllocationMethod": "Dynamic",
-                            "subnet": {
-                                "id": "[variables('subnet1Ref')]"
-                            },
-                            "publicIPAddress": {
-                                "id": "[resourceId(resourceGroup().name,'Microsoft.Network/publicIPAddresses', concat(variables('public-ipName'),copyIndex(1)))]"
-                            }
-                        }
-                    }
-                ],
-                "networkSecurityGroup": {
-                    "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups/', 'haa-nsg')]"
-                }
-            },
-            "copy": {
-                "name": "nicLoop",
-                "count": "[parameters('numberOfInstances')]"
-            },
-            "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
-        },
-        {
-            "type": "Microsoft.Compute/virtualMachines",
-            "apiVersion": "2019-03-01",
-            "name": "[concat(variables('vm-prefix'), copyIndex(1))]",
-            "location": "[variables('location')]",
-            "dependsOn": [
-                "nicLoop",
-                "[concat('Microsoft.Compute/virtualMachines/', concat(variables('vm-prefix'),'-master'))]"
-            ],
-            "properties": {
-                "availabilitySet": {
-                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
-                },
-                "hardwareProfile": {
-                    "vmSize": "Standard_D2s_v3"
-                },
-                "osProfile": {
-                    "computerName": "[concat(variables('vm-prefix'), copyIndex(1))]",
-                    "adminUsername": "[parameters('adminUsername')]",
-                    "adminPassword": "[parameters('adminPassword')]"
-                },
-                "storageProfile": {
-                    "imageReference": "[variables('imageReference')]",
-                    "osDisk": {
-                        "createOption": "FromImage"
-                    }
-                },
-                "networkProfile": {
-                    "networkInterfaces": [
-                        {
-                            "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkInterfaces',concat(variables('vm-prefix'),'-nic', copyindex(1)))]"
-                        }
-                    ]
-                }
-            },
-            "resources": [
-                {
-                    "type": "extensions",
-                    "apiVersion": "2019-03-01",
-                    "name": "haa-CSE",
-                    "location": "[variables('location')]",
-                    "dependsOn": [
-                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('vm-prefix'), copyIndex(1)))]",
-                        "master-cse"
-                    ],
-                    "tags": {
-                        "displayName": "haa-CSE"
-                    },
-                    "properties": {
-                        "publisher": "Microsoft.Azure.Extensions",
-                        "type": "CustomScript",
-                        "typeHandlerVersion": "2.0",
-                        "autoUpgradeMinorVersion": true,
-                        "settings": {
-                            "fileUris": [
-                                "[variables('haa-CSEScript')]"
-                            ],
-                            "commandToExecute": "[concat('sh ', variables('haa-CSEScriptFileName'),' -u ', parameters('adminEmail'),' -p ',parameters('adminPassword'),' -j ',reference(concat('Microsoft.Network/networkInterfaces/', variables('vm-prefix'),'-master-nic')).ipConfigurations[0].properties.privateIPAddress)]"
-                        }
-                    },
-                    "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
-                }
-            ],
-            "copy": {
-                "name": "virtualMachineLoop",
-                "count": "[parameters('numberOfInstances')]"
-            },
-            "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
-        },
-        {
-            "type": "Microsoft.Network/publicIPAddresses",
-            "apiVersion": "2019-04-01",
-            "name": "[concat(variables('public-ipName'),copyIndex(1))]",
-            "location": "[variables('location')]",
-            "dependsOn": [],
-            "tags": {
-                "displayName": "[concat(variables('public-ipName'),copyIndex(1))]"
-            },
-            "properties": {
-                "publicIPAllocationMethod": "Dynamic",
-                "dnsSettings": {
-                    "domainNameLabel": "[concat(variables('dnsSuffix'),copyIndex(1))]"
-                }
-            },
-            "copy": {
-                "name": "pipLoop",
-                "count": "[parameters('numberOfInstances')]"
-            },
-            "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
-        },
-        {
-            "type": "Microsoft.Network/networkInterfaces",
-            "apiVersion": "2019-04-01",
             "name": "[concat(variables('vm-prefix'),'-master-nic')]",
             "location": "[variables('location')]",
             "dependsOn": [
@@ -329,9 +162,6 @@
                 "displayName": "master-node"
             },
             "properties": {
-                "availabilitySet": {
-                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
-                },
                 "hardwareProfile": {
                     "vmSize": "Standard_D2s_v3"
                 },
@@ -393,7 +223,7 @@
             "properties": {
                 "publicIPAllocationMethod": "Dynamic",
                 "dnsSettings": {
-                    "domainNameLabel": "[concat(variables('dnsSuffix'),'-haa')]"
+                    "domainNameLabel": "[variables('dnsSuffix')]"
                 }
             }
         }
