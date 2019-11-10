@@ -11,13 +11,20 @@
         "adminEmail": {
             "type": "String",
             "metadata": {
-                "description": "Admin email for Redis"
+                "description": "Admin email for HAA"
             }
         },
         "adminPassword": {
             "type": "String",
             "metadata": {
                 "description": "Admin password for VMs"
+            }
+        },
+        "dns": {
+            "defaultValue" : "adminUsername-haa.westeurope.cloudapp.azure.com",
+            "type": "String",
+            "metadata": {
+                "description": "DNS preffix"
             }
         },
         "numberOfInstances": {
@@ -50,8 +57,8 @@
         }
     },
     "variables": {
-        "vm-prefix": "redis",
-        "dnsSuffix": "[concat(parameters('adminUsername'),'-redis')]",
+        "vm-prefix": "[parameters('adminUsername')]",
+        "dnsSuffix": "[parameters('dns')]",
         "location": "[resourceGroup().location]",
         "virtualNetworkName": "dsf-project-test-vnet",
         "addressPrefix": "10.0.0.0/16",
@@ -66,9 +73,9 @@
             "version": "latest"
         },
         "imageReference": "[variables(parameters('OS'))]",
-        "public-ipName": "redis-pip",
-        "redis-CSEScript": "http://download.uipath.com/haa/get-haa.sh",
-        "redis-CSEScriptFileName": "get-haa.sh",
+        "public-ipName": "haa-pip",
+        "haa-CSEScript": "http://download.uipath.com/haa/get-haa.sh",
+        "haa-CSEScriptFileName": "get-haa.sh",
         "master-nodeVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
         "master-nodeSubnetRef": "[concat(variables('master-nodeVnetID'), '/subnets/', variables('subnet1Name'))]"
     },
@@ -89,7 +96,7 @@
         {
             "type": "Microsoft.Network/networkSecurityGroups",
             "apiVersion": "2019-08-01",
-            "name": "redis-nsg",
+            "name": "haa-nsg",
             "location": "[resourceGroup().location]",
             "properties": {
                 "securityRules": [
@@ -108,9 +115,9 @@
                         }
                     },
                     {
-                        "name": "Redis",
+                        "name": "HAA",
                         "properties": {
-                            "description": "Allows Redis traffic",
+                            "description": "Allows HAA traffic",
                             "protocol": "Tcp",
                             "sourcePortRange": "*",
                             "destinationPortRange": "8443-9443",
@@ -130,7 +137,7 @@
             "name": "[variables('virtualNetworkName')]",
             "location": "[variables('location')]",
             "dependsOn": [
-                "[concat('Microsoft.Network/networkSecurityGroups/', 'redis-nsg')]"
+                "[concat('Microsoft.Network/networkSecurityGroups/', 'haa-nsg')]"
             ],
             "properties": {
                 "addressSpace": {
@@ -144,7 +151,7 @@
                         "properties": {
                             "addressPrefix": "[variables('subnet1Prefix')]",
                             "networkSecurityGroup": {
-                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups/', 'redis-nsg')]"
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups/', 'haa-nsg')]"
                             }
                         }
                     }
@@ -158,7 +165,7 @@
             "location": "[variables('location')]",
             "dependsOn": [
                 "[variables('virtualNetworkName')]",
-                "[concat('Microsoft.Network/networkSecurityGroups/','redis-nsg')]",
+                "[concat('Microsoft.Network/networkSecurityGroups/','haa-nsg')]",
                 "[resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('public-ipName'),copyIndex(1)))]"
             ],
             "properties": {
@@ -177,7 +184,7 @@
                     }
                 ],
                 "networkSecurityGroup": {
-                    "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups/', 'redis-nsg')]"
+                    "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups/', 'haa-nsg')]"
                 }
             },
             "copy": {
@@ -225,14 +232,14 @@
                 {
                     "type": "extensions",
                     "apiVersion": "2019-03-01",
-                    "name": "redis-CSE",
+                    "name": "haa-CSE",
                     "location": "[variables('location')]",
                     "dependsOn": [
                         "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('vm-prefix'), copyIndex(1)))]",
                         "master-cse"
                     ],
                     "tags": {
-                        "displayName": "redis-CSE"
+                        "displayName": "haa-CSE"
                     },
                     "properties": {
                         "publisher": "Microsoft.Azure.Extensions",
@@ -241,9 +248,9 @@
                         "autoUpgradeMinorVersion": true,
                         "settings": {
                             "fileUris": [
-                                "[variables('redis-CSEScript')]"
+                                "[variables('haa-CSEScript')]"
                             ],
-                            "commandToExecute": "[concat('sh ', variables('redis-CSEScriptFileName'),' -u ', parameters('adminEmail'),' -p ',parameters('adminPassword'),' -j ',reference(concat('Microsoft.Network/networkInterfaces/', variables('vm-prefix'),'-master-nic')).ipConfigurations[0].properties.privateIPAddress)]"
+                            "commandToExecute": "[concat('sh ', variables('haa-CSEScriptFileName'),' -u ', parameters('adminEmail'),' -p ',parameters('adminPassword'),' -j ',reference(concat('Microsoft.Network/networkInterfaces/', variables('vm-prefix'),'-master-nic')).ipConfigurations[0].properties.privateIPAddress)]"
                         }
                     },
                     "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
@@ -283,7 +290,7 @@
             "location": "[variables('location')]",
             "dependsOn": [
                 "[variables('virtualNetworkName')]",
-                "[concat('Microsoft.Network/networkSecurityGroups/','redis-nsg')]",
+                "[concat('Microsoft.Network/networkSecurityGroups/','haa-nsg')]",
                 "[resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('vm-prefix'),'-master-pip'))]"
             ],
             "tags": {
@@ -305,7 +312,7 @@
                     }
                 ],
                 "networkSecurityGroup": {
-                    "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups/', 'redis-nsg')]"
+                    "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups/', 'haa-nsg')]"
                 }
             }
         },
@@ -316,7 +323,7 @@
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[concat(variables('vm-prefix'),'-master-nic')]",
-                "[concat('Microsoft.Network/networkSecurityGroups/','redis-nsg')]"
+                "[concat('Microsoft.Network/networkSecurityGroups/','haa-nsg')]"
             ],
             "tags": {
                 "displayName": "master-node"
@@ -366,9 +373,9 @@
                         "autoUpgradeMinorVersion": true,
                         "settings": {
                             "fileUris": [
-                                "[variables('redis-CSEScript')]"
+                                "[variables('haa-CSEScript')]"
                             ],
-                            "commandToExecute": "[concat('sh ', variables('redis-CSEScriptFileName'),' -u ', parameters('adminEmail'),' -p ',parameters('adminPassword'))]"
+                            "commandToExecute": "[concat('sh ', variables('haa-CSEScriptFileName'),' -u ', parameters('adminEmail'),' -p ',parameters('adminPassword'))]"
                         }
                     }
                 }
@@ -386,7 +393,7 @@
             "properties": {
                 "publicIPAllocationMethod": "Dynamic",
                 "dnsSettings": {
-                    "domainNameLabel": "[concat(variables('dnsSuffix'),'-master')]"
+                    "domainNameLabel": "[concat(variables('dnsSuffix'),'-haa')]"
                 }
             }
         }
