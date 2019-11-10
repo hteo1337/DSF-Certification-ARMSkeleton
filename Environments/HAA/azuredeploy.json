@@ -15,7 +15,7 @@
             }
         },
         "adminPassword": {
-            "type": "SecureString",
+            "type": "String",
             "metadata": {
                 "description": "Admin password for VMs"
             }
