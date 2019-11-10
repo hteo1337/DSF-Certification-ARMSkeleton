@@ -38,13 +38,6 @@
             ],
             "type": "String"
         },
-        "license": {
-            "defaultValue": "",
-            "type": "String",
-            "metadata": {
-                "description": "HA Addon license key"
-            }
-        },
         "OS": {
             "defaultValue": "RHEL",
             "allowedValues": [
@@ -375,7 +368,7 @@
                             "fileUris": [
                                 "[variables('redis-CSEScript')]"
                             ],
-                            "commandToExecute": "[concat('sh ', variables('redis-CSEScriptFileName'),' -u ', parameters('adminEmail'),' -p ',parameters('adminPassword'),' -l ',parameters('license'))]"
+                            "commandToExecute": "[concat('sh ', variables('redis-CSEScriptFileName'),' -u ', parameters('adminEmail'),' -p ',parameters('adminPassword'))]"
                         }
                     }
                 }
