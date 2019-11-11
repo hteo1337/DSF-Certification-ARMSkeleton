@@ -1,0 +1,6 @@
+{
+    "itemDisplayName": "HA Addon",
+    "description": "This template creates an HA Addon VM",
+    "githubUsername": "hteo1337",
+    "summary": "Deploys an HA Addon instance as an environment in a DevTest Lab."
+}
