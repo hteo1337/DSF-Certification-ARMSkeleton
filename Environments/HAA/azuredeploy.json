@@ -1,60 +1,102 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "adminUsername": {
+        "adminusername": {
             "type": "String",
             "metadata": {
                 "description": "Admin username for VM"
             }
         },
-        "adminEmail": {
+        "adminemail": {
             "type": "String",
             "metadata": {
-                "description": "Admin email for HAA"
+                "description": "Admin email for Redis"
             }
         },
-        "adminPassword": {
+        "adminpassword": {
             "type": "String",
             "metadata": {
                 "description": "Admin password for VMs"
             }
         },
-        "dns": {
-            "defaultValue" : "adminUsername-template",
+        "numberOfInstances": {
+            "defaultValue": 2,
+            "allowedValues": [
+                2
+            ],
+            "type": "Int",
+            "metadata": {
+                "description": "Number of VMs to deploy"
+            }
+        },
+        "deployOnlyMaster": {
+            "defaultValue": "yes",
+            "allowedValues": [
+                "yes",
+                "no"
+            ],
+            "type": "String"
+        },
+        "license": {
+            "defaultValue": "",
             "type": "String",
             "metadata": {
-                "description": "DNS suffix"
+                "description": "HA Addon license key"
+            }
+        },
+        "OS": {
+            "defaultValue": "RHEL",
+            "allowedValues": [
+                "RHEL"
+            ],
+            "type": "String",
+            "metadata": {
+                "description": "OS Platform for the VM"
             }
         }
     },
     "variables": {
-        "vm-prefix": "[parameters('adminUsername')]",
-        "dnsSuffix": "[parameters('dns')]",
+        "vm-prefix": "redis",
+        "dnsSuffix": "[concat(parameters('adminusername'),'-redis')]",
         "location": "[resourceGroup().location]",
         "virtualNetworkName": "dsf-project-test-vnet",
         "addressPrefix": "10.0.0.0/16",
         "subnet1Name": "dsf-project-test-subnet",
         "subnet1Prefix": "10.0.0.0/24",
         "subnet1Ref": "[resourceId('Microsoft.Network/virtualNetworks/subnets',variables('virtualNetworkName'),variables('subnet1Name'))]",
+        "availabilitySetName": "HAset",
         "RHEL": {
             "publisher": "RedHat",
             "offer": "RHEL",
             "sku": "7-LVM",
             "version": "latest"
         },
-        "imageReference": "[variables('RHEL')]",
-        "public-ipName": "haa-pip",
-        "haa-CSEScript": "http://download.uipath.com/haa/get-haa.sh",
-        "haa-CSEScriptFileName": "get-haa.sh",
+        "imageReference": "[variables(parameters('OS'))]",
+        "public-ipName": "redis-pip",
+        "redis-CSEScript": "http://download.uipath.com/haa/get-haa.sh",
+        "redis-CSEScriptFileName": "get-haa.sh",
         "master-nodeVnetID": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
         "master-nodeSubnetRef": "[concat(variables('master-nodeVnetID'), '/subnets/', variables('subnet1Name'))]"
     },
     "resources": [
         {
+            "type": "Microsoft.Compute/availabilitySets",
+            "apiVersion": "2019-03-01",
+            "name": "[variables('availabilitySetName')]",
+            "location": "[variables('location')]",
+            "sku": {
+                "name": "Aligned"
+            },
+            "properties": {
+                "platformFaultDomainCount": 2,
+                "platformUpdateDomainCount": 2
+            }
+        },
+        {
             "type": "Microsoft.Network/networkSecurityGroups",
             "apiVersion": "2019-08-01",
-            "name": "haa-nsg",
+            "name": "redis-nsg",
             "location": "[resourceGroup().location]",
             "properties": {
                 "securityRules": [
@@ -73,9 +115,9 @@
                         }
                     },
                     {
-                        "name": "HAA",
+                        "name": "Redis",
                         "properties": {
-                            "description": "Allows HAA traffic",
+                            "description": "Allows Redis traffic",
                             "protocol": "Tcp",
                             "sourcePortRange": "*",
                             "destinationPortRange": "8443-9443",
@@ -95,7 +137,7 @@
             "name": "[variables('virtualNetworkName')]",
             "location": "[variables('location')]",
             "dependsOn": [
-                "[concat('Microsoft.Network/networkSecurityGroups/', 'haa-nsg')]"
+                "[concat('Microsoft.Network/networkSecurityGroups/', 'redis-nsg')]"
             ],
             "properties": {
                 "addressSpace": {
@@ -109,7 +151,7 @@
                         "properties": {
                             "addressPrefix": "[variables('subnet1Prefix')]",
                             "networkSecurityGroup": {
-                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups/', 'haa-nsg')]"
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups/', 'redis-nsg')]"
                             }
                         }
                     }
@@ -119,11 +161,136 @@
         {
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2019-04-01",
+            "name": "[concat(variables('vm-prefix'),'-nic', copyindex(1))]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('virtualNetworkName')]",
+                "[concat('Microsoft.Network/networkSecurityGroups/','redis-nsg')]",
+                "[resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('public-ipName'),copyIndex(1)))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('subnet1Ref')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId(resourceGroup().name,'Microsoft.Network/publicIPAddresses', concat(variables('public-ipName'),copyIndex(1)))]"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups/', 'redis-nsg')]"
+                }
+            },
+            "copy": {
+                "name": "nicLoop",
+                "count": "[parameters('numberOfInstances')]"
+            },
+            "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-03-01",
+            "name": "[concat(variables('vm-prefix'), copyIndex(1))]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "nicLoop",
+                "[concat('Microsoft.Compute/virtualMachines/', concat(variables('vm-prefix'),'-master'))]"
+            ],
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "Standard_D2s_v3"
+                },
+                "osProfile": {
+                    "computerName": "[concat(variables('vm-prefix'), copyIndex(1))]",
+                    "adminUsername": "[parameters('adminusername')]",
+                    "adminPassword": "[parameters('adminpassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": "[variables('imageReference')]",
+                    "osDisk": {
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkInterfaces',concat(variables('vm-prefix'),'-nic', copyindex(1)))]"
+                        }
+                    ]
+                }
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "apiVersion": "2019-03-01",
+                    "name": "redis-CSE",
+                    "location": "[variables('location')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('vm-prefix'), copyIndex(1)))]",
+                        "master-cse"
+                    ],
+                    "tags": {
+                        "displayName": "redis-CSE"
+                    },
+                    "properties": {
+                        "publisher": "Microsoft.Azure.Extensions",
+                        "type": "CustomScript",
+                        "typeHandlerVersion": "2.0",
+                        "autoUpgradeMinorVersion": true,
+                        "settings": {
+                            "fileUris": [
+                                "[variables('redis-CSEScript')]"
+                            ],
+                            "commandToExecute": "[concat('sh ', variables('redis-CSEScriptFileName'),' -u ', parameters('adminemail'),' -p ',parameters('adminpassword'),' -j ',reference(concat('Microsoft.Network/networkInterfaces/', variables('vm-prefix'),'-master-nic')).ipConfigurations[0].properties.privateIPAddress)]"
+                        }
+                    },
+                    "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
+                }
+            ],
+            "copy": {
+                "name": "virtualMachineLoop",
+                "count": "[parameters('numberOfInstances')]"
+            },
+            "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2019-04-01",
+            "name": "[concat(variables('public-ipName'),copyIndex(1))]",
+            "location": "[variables('location')]",
+            "dependsOn": [],
+            "tags": {
+                "displayName": "[concat(variables('public-ipName'),copyIndex(1))]"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(variables('dnsSuffix'),copyIndex(1))]"
+                }
+            },
+            "copy": {
+                "name": "pipLoop",
+                "count": "[parameters('numberOfInstances')]"
+            },
+            "condition": "[equals(parameters('deployOnlyMaster'), 'no')]"
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2019-04-01",
             "name": "[concat(variables('vm-prefix'),'-master-nic')]",
             "location": "[variables('location')]",
             "dependsOn": [
                 "[variables('virtualNetworkName')]",
-                "[concat('Microsoft.Network/networkSecurityGroups/','haa-nsg')]",
+                "[concat('Microsoft.Network/networkSecurityGroups/','redis-nsg')]",
                 "[resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('vm-prefix'),'-master-pip'))]"
             ],
             "tags": {
@@ -145,7 +312,7 @@
                     }
                 ],
                 "networkSecurityGroup": {
-                    "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups/', 'haa-nsg')]"
+                    "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups/', 'redis-nsg')]"
                 }
             }
         },
@@ -156,19 +323,22 @@
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[concat(variables('vm-prefix'),'-master-nic')]",
-                "[concat('Microsoft.Network/networkSecurityGroups/','haa-nsg')]"
+                "[concat('Microsoft.Network/networkSecurityGroups/','redis-nsg')]"
             ],
             "tags": {
                 "displayName": "master-node"
             },
             "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySetName'))]"
+                },
                 "hardwareProfile": {
                     "vmSize": "Standard_D2s_v3"
                 },
                 "osProfile": {
                     "computerName": "[concat(variables('vm-prefix'),'-master')]",
-                    "adminUsername": "[parameters('adminUsername')]",
-                    "adminPassword": "[parameters('adminPassword')]"
+                    "adminUsername": "[parameters('adminusername')]",
+                    "adminPassword": "[parameters('adminpassword')]"
                 },
                 "storageProfile": {
                     "imageReference": "[variables('imageReference')]",
@@ -203,9 +373,9 @@
                         "autoUpgradeMinorVersion": true,
                         "settings": {
                             "fileUris": [
-                                "[variables('haa-CSEScript')]"
+                                "[variables('redis-CSEScript')]"
                             ],
-                            "commandToExecute": "[concat('sh ', variables('haa-CSEScriptFileName'),' -u ', parameters('adminEmail'),' -p ',parameters('adminPassword'))]"
+                            "commandToExecute": "[concat('sh ', variables('redis-CSEScriptFileName'),' -u ', parameters('adminemail'),' -p ',parameters('adminpassword'),' -l ',parameters('license'))]"
                         }
                     }
                 }
@@ -223,7 +393,7 @@
             "properties": {
                 "publicIPAllocationMethod": "Dynamic",
                 "dnsSettings": {
-                    "domainNameLabel": "[variables('dnsSuffix')]"
+                    "domainNameLabel": "[concat(variables('dnsSuffix'),'-master')]"
                 }
             }
         }
