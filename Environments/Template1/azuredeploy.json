@@ -41,7 +41,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2018-05-01",
-            "name": "linkedTemplate",
+            "name": "linkedOrch",
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
@@ -58,7 +58,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2018-05-01",
-            "name": "linkedTemplate",
+            "name": "linkedHaa",
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
