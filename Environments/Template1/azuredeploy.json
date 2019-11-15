@@ -1,0 +1,78 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminusername": {
+            "type": "string",
+            "metadata": {
+                "description": "Username for the Virtual Machine."
+            }
+        },
+        "adminpassword": {
+            "type": "string",
+            "metadata": {
+                "description": "Password for the Virtual Machine."
+            }
+        },
+        "adminemail": {
+            "type": "String",
+            "metadata": {
+                "description": "Admin email for Redis"
+            }
+        },
+        "dnsHAA": {
+            "defaultValue" : "DNS-HAA",
+            "type": "String",
+            "metadata": {
+                "description": "DNS suffix"
+            }
+        },
+        "dnsOrch": {
+            "defaultValue" : "DNS-ORCH",
+            "type": "String",
+            "metadata": {
+                "description": "DNS suffix"
+            }
+        }
+    },
+    "variables": {
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "name": "linkedTemplate",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/tadrian88/DSF-Certification-ARMSkeleton/master/Environments/BaseTemplate/Orch/azuredeploy.json",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters":{
+                    "adminusername":{"value": "[parameters('adminusername')]"},
+                    "adminpassword":{"value": "[parameters('adminpassword')]"},
+                    "dnsOrch":{"value": "[parameters('dnsOrch')]"}
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "name": "linkedTemplate",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/tadrian88/DSF-Certification-ARMSkeleton/master/Environments/BaseTemplate/HAA/azuredeploy.json",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters":{
+                    "adminusername":{"value": "[parameters('adminusername')]"},
+                    "adminemail":{"value": "[parameters('adminemail')]"},
+                    "adminpassword":{"value": "[parameters('adminpassword')]"},
+                    "dnsHAA":{"value": "[parameters('dnsHAA')]"}
+                }
+            }
+        }
+    ],
+    "outputs":{}
+}
