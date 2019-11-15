@@ -166,7 +166,7 @@
                     "vmSize": "Standard_D2s_v3"
                 },
                 "osProfile": {
-                    "computerName": "[concat(variables('vm-prefix'),'-master')]",
+                    "computerName": "[variables('vm-prefix')]",
                     "adminUsername": "[parameters('adminUsername')]",
                     "adminPassword": "[parameters('adminPassword')]"
                 },
@@ -191,7 +191,7 @@
                     "name": "master-cse",
                     "location": "[resourceGroup().location]",
                     "dependsOn": [
-                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('vm-prefix'),'-master'))]"
+                        "[resourceId('Microsoft.Compute/virtualMachines', variables('vm-prefix'))]"
                     ],
                     "tags": {
                         "displayName": "master-cse"
