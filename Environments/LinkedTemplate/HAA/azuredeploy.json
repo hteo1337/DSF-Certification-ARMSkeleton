@@ -21,7 +21,7 @@
             }
         },
         "dnsHAA": {
-            "defaultValue" : "adminUsername-template",
+            "defaultValue": "adminUsername-template",
             "type": "String",
             "metadata": {
                 "description": "DNS suffix"
@@ -216,7 +216,8 @@
             "apiVersion": "2019-04-01",
             "name": "[concat(variables('vm-prefix'),'-master-pip')]",
             "location": "[variables('location')]",
-            "dependsOn": [],
+            "dependsOn": [
+            ],
             "tags": {
                 "displayName": "master-node-pip"
             },
@@ -227,5 +228,11 @@
                 }
             }
         }
-    ]
+    ],
+    "outputs": {
+        "HAAConnectionString": {
+            "value": "[concat(reference(concat('Microsoft.Network/publicIPAddresses/', concat(variables('vm-prefix'),'-master-pip')), '2019-09-01').dnsSettings.fqdn,':',10000,',password=',parameters('adminPassword'),',ssl=','true',',abortConnect=False')]",
+            "type": "string"
+        }
+    }
 }

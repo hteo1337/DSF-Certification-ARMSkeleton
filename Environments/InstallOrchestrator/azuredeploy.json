@@ -21,14 +21,14 @@
             }
         },
         "dnsHAA": {
-            "defaultValue" : "DNS-HAA",
+            "defaultValue": "DNS-HAA",
             "type": "String",
             "metadata": {
                 "description": "DNS suffix"
             }
         },
         "dnsOrch": {
-            "defaultValue" : "DNS-ORCH",
+            "defaultValue": "DNS-ORCH",
             "type": "String",
             "metadata": {
                 "description": "DNS suffix"
@@ -48,10 +48,16 @@
                     "uri": "https://raw.githubusercontent.com/tadrian88/DSF-Certification-ARMSkeleton/master/Environments/LinkedTemplate/Orch/azuredeploy.json",
                     "contentVersion": "1.0.0.0"
                 },
-                "parameters":{
-                    "adminusername":{"value": "[parameters('adminusername')]"},
-                    "adminpassword":{"value": "[parameters('adminpassword')]"},
-                    "dnsOrch":{"value": "[parameters('dnsOrch')]"}
+                "parameters": {
+                    "adminusername": {
+                        "value": "[parameters('adminusername')]"
+                    },
+                    "adminpassword": {
+                        "value": "[parameters('adminpassword')]"
+                    },
+                    "dnsOrch": {
+                        "value": "[parameters('dnsOrch')]"
+                    }
                 }
             }
         },
@@ -65,14 +71,35 @@
                     "uri": "https://raw.githubusercontent.com/tadrian88/DSF-Certification-ARMSkeleton/master/Environments/LinkedTemplate/HAA/azuredeploy.json",
                     "contentVersion": "1.0.0.0"
                 },
-                "parameters":{
-                    "adminusername":{"value": "[parameters('adminusername')]"},
-                    "adminemail":{"value": "[parameters('adminemail')]"},
-                    "adminpassword":{"value": "[parameters('adminpassword')]"},
-                    "dnsHAA":{"value": "[parameters('dnsHAA')]"}
+                "parameters": {
+                    "adminusername": {
+                        "value": "[parameters('adminusername')]"
+                    },
+                    "adminemail": {
+                        "value": "[parameters('adminemail')]"
+                    },
+                    "adminpassword": {
+                        "value": "[parameters('adminpassword')]"
+                    },
+                    "dnsHAA": {
+                        "value": "[parameters('dnsHAA')]"
+                    }
                 }
             }
         }
     ],
-    "outputs":{}
+    "outputs": {
+        "OrchestratorVMUser": {
+            "value": "[parameters('adminusername')]",
+            "type": "string"
+        },
+        "OrchestratorVMPass": {
+            "value": "[parameters('adminpassword')]",
+            "type": "string"
+        },
+        "HAAConnectionString":{
+            "value": "[reference('<deploymentName>').outputs.HAAConnectionString.value]",
+            "type": "string"
+        }
+    }
 }
