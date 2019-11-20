@@ -37,8 +37,14 @@
         "presales-td":"[resourceId(variables('TemplateImageRG'), 'Microsoft.Compute/images', variables('TemplateImage'))]",
         "managedImageId": "[variables('presales-td')]",
         "dnsSuffix": "[parameters('dnsOrch')]",
-        "location": "[resourceGroup().location]"
-            
+        "location": "[resourceGroup().location]",
+        "imageReference": "[variables('Windows')]",
+        "Windows": {
+           "publisher": "MicrosoftWindowsServer",
+           "offer": "WindowsServer",
+           "sku": "2016-Datacenter",
+           "version": "latest"
+       }           
     },
     "resources": [
         {
@@ -149,7 +155,7 @@
                 },
                 "storageProfile": {
                     "imageReference": {
-                        "id": "[variables('managedImageId')]"
+                        "id": "[variables('imageReference')]"
                     },
                     "osDisk": {
                         "createOption": "FromImage"
