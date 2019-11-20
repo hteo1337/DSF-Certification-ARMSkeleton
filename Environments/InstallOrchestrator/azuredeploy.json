@@ -98,7 +98,7 @@
             "type": "string"
         },
         "HAAConnectionString":{
-            "value": "[reference('<deploymentName>').outputs.HAAConnectionString.value]",
+            "value": "[reference('linkedHaa').outputs.HAAConnectionString.value]",
             "type": "string"
         }
     }
