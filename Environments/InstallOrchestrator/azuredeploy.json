@@ -73,7 +73,7 @@
                 },
                 "parameters": {
                     "adminusername": {
-                        "value": "[parameters('adminusername')]"
+                        "value": "[concat(parameters('adminusername'),'-haa')]"
                     },
                     "adminemail": {
                         "value": "[parameters('adminemail')]"
