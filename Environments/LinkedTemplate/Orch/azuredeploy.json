@@ -15,7 +15,7 @@
             }
         },
         "dnsOrch": {
-            "defaultValue" : "adminUsername-template",
+            "defaultValue": "adminUsername-template",
             "type": "String",
             "metadata": {
                 "description": "DNS suffix"
@@ -34,17 +34,17 @@
         "virtualNetworkName": "dsf-project-test-vnet",
         "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]",
         "networkSecurityGroupName": "default-NSG",
-        "presales-td":"[resourceId(variables('TemplateImageRG'), 'Microsoft.Compute/images', variables('TemplateImage'))]",
+        "presales-td": "[resourceId(variables('TemplateImageRG'), 'Microsoft.Compute/images', variables('TemplateImage'))]",
         "managedImageId": "[variables('presales-td')]",
         "dnsSuffix": "[parameters('dnsOrch')]",
         "location": "[resourceGroup().location]",
         "imageReference": "[variables('Windows')]",
         "Windows": {
-           "publisher": "MicrosoftWindowsServer",
-           "offer": "WindowsServer",
-           "sku": "2016-Datacenter",
-           "version": "latest"
-       }           
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2016-Datacenter",
+            "version": "latest"
+        }
     },
     "resources": [
         {
@@ -126,9 +126,7 @@
                     "adminPassword": "[parameters('adminpassword')]"
                 },
                 "storageProfile": {
-                    "imageReference": {
-                        "id": "[variables('imageReference')]"
-                    },
+                    "imageReference": "[variables('imageReference')]",
                     "osDisk": {
                         "createOption": "FromImage"
                     },
@@ -150,5 +148,6 @@
             }
         }
     ],
-    "outputs":{}
+    "outputs": {
+    }
 }
