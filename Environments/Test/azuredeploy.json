@@ -1,0 +1,31 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminusername": {
+            "type": "string",
+            "metadata": {
+                "description": "Username for the Virtual Machine."
+            }
+        },
+        "adminpassword": {
+            "type": "string",
+            "metadata": {
+                "description": "Password for the Virtual Machine."
+            }
+        }
+    },
+    "variables": {
+    },
+    "resources": [],
+    "outputs": {
+        "OrchestratorVMUser": {
+            "value": "[parameters('adminusername')]",
+            "type": "string"
+        },
+        "OrchestratorVMPass": {
+            "value": "[parameters('adminpassword')]",
+            "type": "string"
+        }        
+    }
+}
