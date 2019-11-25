@@ -17,7 +17,13 @@
     },
     "variables": {
     },
-    "resources": [],
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "name": "masterDeployment"
+        }
+    ],
     "outputs": {
         "OrchestratorVMUser": {
             "value": "[parameters('adminusername')]",
