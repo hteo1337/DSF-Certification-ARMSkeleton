@@ -18,7 +18,21 @@
     },
     "variables": {
     },
-    "resources": [],
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2018-05-01",
+            "name": "linkedTest",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/tadrian88/DSF-Certification-ARMSkeleton/master/Environments/LinkedTemplate/HAA/azuredeploy.json",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": ""
+            }
+        }
+    ],
     "outputs": {
         "OrchestratorVMUser": {
             "value": "[parameters('adminusername')]",
@@ -27,6 +41,10 @@
         "OrchestratorVMPass": {
             "value": "[parameters('adminpassword')]",
             "type": "string"
-        }        
+        },
+        "LinkedOutput":{
+            "value": "[reference('linkedTest').outputs.linkedOutput.value]",
+            "type": "string"
+        }
     }
 }
