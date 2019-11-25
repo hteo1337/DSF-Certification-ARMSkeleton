@@ -1,6 +1,5 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-    "title": "masterTemplate",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "adminusername": {
@@ -18,21 +17,7 @@
     },
     "variables": {
     },
-    "resources": [
-        {
-            "type": "Microsoft.Resources/deployments",
-            "apiVersion": "2018-05-01",
-            "name": "linkedTest",
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/tadrian88/DSF-Certification-ARMSkeleton/master/Environments/Test/masterLinked.json",
-                    "contentVersion": "1.0.0.0"
-                },
-                "parameters": ""
-            }
-        }
-    ],
+    "resources": [],
     "outputs": {
         "OrchestratorVMUser": {
             "value": "[parameters('adminusername')]",
@@ -41,10 +26,6 @@
         "OrchestratorVMPass": {
             "value": "[parameters('adminpassword')]",
             "type": "string"
-        },
-        "LinkedOutput":{
-            "value": "[reference('linkedTest').outputs.linkedOutput.value]",
-            "type": "string"
-        }
+        }        
     }
 }
