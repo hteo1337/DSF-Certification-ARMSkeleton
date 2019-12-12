@@ -20,8 +20,8 @@
                 "description": "Admin password for VMs"
             }
         },
-        "dns": {
-            "defaultValue" : "adminUsername-template",
+        "dnsHAA": {
+            "defaultValue": "adminUsername-template",
             "type": "String",
             "metadata": {
                 "description": "DNS suffix"
@@ -30,7 +30,7 @@
     },
     "variables": {
         "vm-prefix": "[parameters('adminUsername')]",
-        "dnsSuffix": "[parameters('dns')]",
+        "dnsSuffix": "[parameters('dnsHAA')]",
         "location": "[resourceGroup().location]",
         "virtualNetworkName": "dsf-project-test-vnet",
         "addressPrefix": "10.0.0.0/16",
@@ -152,7 +152,7 @@
         {
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2019-03-01",
-            "name": "[concat(variables('vm-prefix'),'-master')]",
+            "name": "[variables('vm-prefix')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[concat(variables('vm-prefix'),'-master-nic')]",
@@ -166,7 +166,7 @@
                     "vmSize": "Standard_D2s_v3"
                 },
                 "osProfile": {
-                    "computerName": "[concat(variables('vm-prefix'),'-master')]",
+                    "computerName": "[variables('vm-prefix')]",
                     "adminUsername": "[parameters('adminUsername')]",
                     "adminPassword": "[parameters('adminPassword')]"
                 },
@@ -191,7 +191,7 @@
                     "name": "master-cse",
                     "location": "[resourceGroup().location]",
                     "dependsOn": [
-                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('vm-prefix'),'-master'))]"
+                        "[resourceId('Microsoft.Compute/virtualMachines', variables('vm-prefix'))]"
                     ],
                     "tags": {
                         "displayName": "master-cse"
@@ -216,7 +216,8 @@
             "apiVersion": "2019-04-01",
             "name": "[concat(variables('vm-prefix'),'-master-pip')]",
             "location": "[variables('location')]",
-            "dependsOn": [],
+            "dependsOn": [
+            ],
             "tags": {
                 "displayName": "master-node-pip"
             },
@@ -227,5 +228,11 @@
                 }
             }
         }
-    ]
+    ],
+    "outputs": {
+        "HAAConnectionString": {
+            "value": "[concat(reference(concat('Microsoft.Network/publicIPAddresses/', concat(variables('vm-prefix'),'-master-pip')), '2019-09-01').dnsSettings.fqdn,':',10000,',password=',parameters('adminPassword'),',ssl=','true',',abortConnect=False')]",
+            "type": "string"
+        }
+    }
 }
