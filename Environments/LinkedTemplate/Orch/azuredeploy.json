@@ -149,5 +149,9 @@
         }
     ],
     "outputs": {
+        "fqdn": {
+            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',concat(variables('vm-prefix'),'-Orch-pip'))).dnsSettings.fqdn]",
+            "type": "string"
+          }
     }
 }

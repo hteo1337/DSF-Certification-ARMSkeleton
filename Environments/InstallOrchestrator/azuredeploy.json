@@ -100,8 +100,20 @@
             "value": "[parameters('adminpassword')]",
             "type": "string"
         },
+        "HAA-adminEmail": {
+            "value": "[parameters('adminemail')]",
+            "type": "string"
+        },
         "HAAConnectionString":{
             "value": "[reference('linkedHaa').outputs.HAAConnectionString.value]",
+            "type": "string"
+        },
+        "HAA-DNS":{
+            "value": "[reference('linkedHaa').outputs.fqdn.value]",
+            "type": "string"
+        },
+        "OrchestratorDNS":{
+            "value": "[reference('linkedOrch').outputs.fqdn.value]",
             "type": "string"
         }
     }

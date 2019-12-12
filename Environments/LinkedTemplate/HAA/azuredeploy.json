@@ -233,6 +233,10 @@
         "HAAConnectionString": {
             "value": "[concat(reference(concat('Microsoft.Network/publicIPAddresses/', concat(variables('vm-prefix'),'-master-pip')), '2019-09-01').dnsSettings.fqdn,':',10000,',password=',parameters('adminPassword'),',ssl=','true',',abortConnect=False')]",
             "type": "string"
-        }
+        },
+        "fqdn": {
+            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',concat(variables('vm-prefix'),'-Orch-pip'))).dnsSettings.fqdn]",
+            "type": "string"
+          }
     }
 }
