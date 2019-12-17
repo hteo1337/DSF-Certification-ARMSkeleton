@@ -235,7 +235,7 @@
             "type": "string"
         },
         "fqdn": {
-            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',concat(variables('vm-prefix'),'-Orch-pip'))).dnsSettings.fqdn]",
+            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',concat(variables('vm-prefix'),'-master-pip'))).dnsSettings.fqdn]",
             "type": "string"
           }
     }

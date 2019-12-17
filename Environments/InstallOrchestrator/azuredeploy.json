@@ -15,21 +15,21 @@
             }
         },
         "adminemail": {
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "Admin email for Redis"
             }
         },
         "dnsHAA": {
             "defaultValue": "DNS-HAA",
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "DNS suffix"
             }
         },
         "dnsOrch": {
             "defaultValue": "DNS-ORCH",
-            "type": "String",
+            "type": "string",
             "metadata": {
                 "description": "DNS suffix"
             }
