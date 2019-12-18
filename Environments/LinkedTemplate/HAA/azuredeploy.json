@@ -59,6 +59,19 @@
             "properties": {
                 "securityRules": [
                     {
+                        "name": "default-allow-3389",
+                        "properties": {
+                            "priority": 100,
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "destinationPortRange": "3389",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*"
+                        }
+                    },
+                    {
                         "name": "SSH",
                         "properties": {
                             "description": "Allows SSH traffic",
@@ -68,7 +81,7 @@
                             "sourceAddressPrefix": "*",
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
-                            "priority": 100,
+                            "priority": 110,
                             "direction": "Inbound"
                         }
                     },
@@ -82,7 +95,7 @@
                             "sourceAddressPrefix": "*",
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
-                            "priority": 110,
+                            "priority": 120,
                             "direction": "Inbound"
                         }
                     }
