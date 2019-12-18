@@ -1,0 +1,173 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminusername": {
+            "type": "string",
+            "metadata": {
+                "description": "Username for the Virtual Machine."
+            }
+        },
+        "adminpassword": {
+            "type": "string",
+            "metadata": {
+                "description": "Password for the Virtual Machine."
+            }
+        },
+        "testCases": {
+            "type": "string",
+            "metadata": {
+                "description":"Test cases"
+            },
+            "allowedValues":[
+                "orchestrator000ci",
+                "orchestrator001ci",
+                "orchestrator002ci",
+                "orchestrator003ci",
+                "orchestrator004ci",
+                "orchestrator005ci"
+            ],
+            "defaultValue" : "orchestrator000ci"
+        }
+    },
+    "variables": {
+        "vm-prefix": "[parameters('adminUsername')]",
+        "TemplateImageRG": "infra-dini-rg",
+        "TemplateImage": "[parameters('testCases')]",
+        "vmSize": "Standard_A2_v2",
+        "nicName": "[concat(variables('vm-prefix'),'-nic')]",
+        "addressPrefix": "10.0.0.0/16",
+        "subnetName": "dsf-project-test-subnet",
+        "subnetPrefix": "10.0.0.0/24",
+        "virtualNetworkName": "dsf-project-test-vnet",
+        "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]",
+        "networkSecurityGroupName": "[resourceId('dsf-project-test', 'Microsoft.Network/networkSecurityGroups','default-NSG')]",
+        "managedImageId": "[resourceId(variables('TemplateImageRG'), 'Microsoft.Compute/images', variables('TemplateImage'))]",
+        "dnsSuffix": "[concat( parameters('adminusername'), uniqueString(resourceGroup().id) )]",
+        "location": "[resourceGroup().location]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2018-11-01",
+            "name": "[concat(variables('vm-prefix'),'-Orch-pip')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                    "domainNameLabel": "[variables('dnsSuffix')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2019-04-01",
+            "name": "[variables('virtualNetworkName')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('networkSecurityGroupName')]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('addressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnetPrefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[variables('networkSecurityGroupName')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2018-11-01",
+            "name": "[variables('nicName')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('virtualNetworkName')]",
+                "[resourceId('Microsoft.Network/publicIPAddresses/', concat(variables('vm-prefix'),'-Orch-pip'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',concat(variables('vm-prefix'),'-Orch-pip'))]"
+                            },
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[variables('networkSecurityGroupName')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-03-01",
+            "name": "[variables('vm-prefix')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces/', variables('nicName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[variables('vm-prefix')]",
+                    "adminUsername": "[parameters('adminusername')]",
+                    "adminPassword": "[parameters('adminpassword')]"
+                },
+                "storageProfile": {
+					"imageReference": {
+                        "id": "[variables('managedImageId')]"
+                    },
+                    "osDisk": {
+                        "osType": "Windows",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Standard_LRS"
+                        },
+                        "diskSizeGB": 30
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "OrchestratorVMUser": {
+            "value": "[parameters('adminusername')]",
+            "type": "string"
+        },
+        "OrchestratorVMPass": {
+            "value": "[parameters('adminpassword')]",
+            "type": "string"
+        },
+        "OrchestratorFQDN": {
+            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',concat(variables('vm-prefix'),'-Orch-pip'))).dnsSettings.fqdn]",
+            "type": "string"
+          }
+    }
+}
