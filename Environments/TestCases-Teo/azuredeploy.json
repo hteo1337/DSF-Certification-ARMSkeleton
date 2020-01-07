@@ -196,8 +196,7 @@
                         "caching": "ReadWrite",
                         "managedDisk": {
                             "storageAccountType": "Standard_LRS"
-                        },
-                        "diskSizeGB": 30
+                        }
                     }
                 },
                 "networkProfile": {
