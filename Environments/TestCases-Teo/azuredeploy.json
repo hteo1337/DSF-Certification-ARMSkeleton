@@ -43,7 +43,7 @@
         "virtualNetworkName": "dsf-project-test-vnet",
         "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]",
         "networkSecurityGroupName": "default-NSG",
-        "managedImageId": "[resourceId(variables('TemplateImageRG'), 'Microsoft.Compute/images', variables('TemplateImage'))]",
+        "managedImageId": "/subscriptions/8e346e72-1237-4ba0-b40e-51bab197bf0d/resourcegroups/dsf-pilot/providers/microsoft.devtestlab/labs/dsf-pilot-lab/customimages/imagine-goala",
         "dnsSuffix": "[concat( parameters('adminusername'), uniqueString(resourceGroup().id) )]",
         "location": "[resourceGroup().location]"
     },
