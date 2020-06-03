@@ -20,15 +20,14 @@
                 "description":"Test cases"
             },
             "allowedValues":[
-                "orchestrator000ci",
-                "orchestrator001ci",
-                "orchestrator002ci",
-                "orchestrator003ci",
-                "orchestrator004ci",
-                "orchestrator005ci",
-                "imagine-goala"
+                "Orch-cert-scenario-01",
+                "Orch-cert-scenario-02",
+                "Orch-cert-scenario-03",
+                "Orch-cert-scenario-04",
+                "Orch-cert-scenario-05",
+                "Orch-cert-scenario-06"
             ],
-            "defaultValue" : "imagine-goala"
+            "defaultValue": "Orch-cert-scenario-01"
         }
     },
     "variables": {
@@ -42,8 +41,9 @@
         "subnetPrefix": "10.0.0.0/24",
         "virtualNetworkName": "dsf-project-test-vnet",
         "subnetRef": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('subnetName'))]",
-        "networkSecurityGroupName": "default-NSG",        
-        "managedImageId": "[resourceId(variables('TemplateImageRG'), 'Microsoft.Compute/images', variables('TemplateImage'))]",
+        "networkSecurityGroupName": "default-NSG",   
+        "galleryName": "DSFCertificationSharedImageG",     
+        "managedImageId": "[resourceId('Microsoft.Compute/galleries/images/versions', variables('galleryName'), variables('TemplateImage'), 'latest')]",
         "dnsSuffix": "[concat( parameters('adminusername'), uniqueString(resourceGroup().id) )]",
         "location": "[resourceGroup().location]"
     },
