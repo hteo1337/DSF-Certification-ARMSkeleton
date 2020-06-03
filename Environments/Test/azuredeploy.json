@@ -41,11 +41,6 @@
         "OrchestratorVMPass": {
             "value": "[parameters('adminpassword')]",
             "type": "string"
-        },
-        "TEMPLATEURI": {
-            "value": "[uri(deployment().properties.templateLink.uri,'test')]",
-            "type": "string"
         }
-
     }
 }
