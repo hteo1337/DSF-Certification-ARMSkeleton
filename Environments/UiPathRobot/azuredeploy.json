@@ -14,13 +14,13 @@
               "description": "Robot Type"
               }
           },
-      "adminUsername": {
+      "adminusername": {
           "type": "String",
           "metadata": {
               "description": "VMs Admin username"
           }
       },
-      "adminPassword": {
+      "adminpassword": {
           "type": "String",
           "metadata": {
               "description": "VMs Admin password"
@@ -41,7 +41,7 @@
   },
   "variables": {
       "location": "[resourceGroup().location]",
-      "vm-prefix": "[parameters('adminUsername')]",
+      "vm-prefix": "[parameters('adminusername')]",
       "dnsSuffix": "[concat(variables('vm-prefix'),'-dns')]",
       "scriptUriBase": "https://raw.githubusercontent.com/hteo1337/DSF-Certification-ARMSkeleton/master/Environments/Scripts/Install-UiRobot.ps1",
       "vmName": "[concat(variables('vm-prefix'),'-uip')]",
@@ -131,8 +131,8 @@
               },
               "osProfile": {
                   "computerName": "[variables('vmName')]",
-                  "adminUsername": "[parameters('adminUsername')]",
-                  "adminPassword": "[parameters('adminPassword')]",
+                  "adminusername": "[parameters('adminusername')]",
+                  "adminpassword": "[parameters('adminpassword')]",
                   "windowsConfiguration": {
                       "enableAutomaticUpdates": true,
                       "provisionVmAgent": true
@@ -166,13 +166,13 @@
       }
   ],
   "outputs": {
-      "adminUsername": {
+      "adminusername": {
           "type": "String",
-          "value": "[parameters('adminUsername')]"
+          "value": "[parameters('adminusername')]"
       },
-      "adminPassword": {
+      "adminpassword": {
           "type": "String",
-          "value": "[parameters('adminPassword')]"
+          "value": "[parameters('adminpassword')]"
       },
       "vmDNS": {
             "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIpAddressName'))).dnsSettings.fqdn]",
