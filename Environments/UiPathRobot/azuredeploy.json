@@ -227,10 +227,6 @@
         "vmDNS": {
             "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIpAddressName'))).dnsSettings.fqdn]",
             "type": "string"
-        },
-        "vmIP": {
-            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses',variables('publicIpAddressName'))).IpAddress]",
-            "type": "string"
         }
     }
 }
