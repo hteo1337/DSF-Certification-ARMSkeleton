@@ -82,7 +82,7 @@
     "variables": {
         "location": "[parameters('location')]",
         "vmName": "[toLower(uniqueString(resourceGroup().id))]",
-        "dnsSuffix": "[concat(parameters('adminusername'),toLower(uniqueString(resourceGroup().id)))]",
+        "dnsSuffix": "[concat(toLower(uniqueString(resourceGroup().id)),'-',parameters('vmRole'))]",
         "vmSize": "[parameters('virtualMachineSize')]",
         "vmRole": "[parameters('vmRole')]",
         "nicName": "[concat(variables('vmName'),'-',variables('vmRole'),'-nic')]",
