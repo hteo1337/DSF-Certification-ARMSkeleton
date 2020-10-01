@@ -45,7 +45,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/hteo1337/DSF-Certification-ARMSkeleton/master/Environments/LinkedTemplate/vnet/vnetTemplate.json",
+                    "uri": "https://raw.githubusercontent.com/hteo1337/DSF-Certification-ARMSkeleton/master/Environments/AIFabric/LinkedTemplate/vnet/vnetTemplate.json",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
