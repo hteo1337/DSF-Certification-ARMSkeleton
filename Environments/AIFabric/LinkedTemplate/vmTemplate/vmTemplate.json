@@ -81,8 +81,8 @@
     },
     "variables": {
         "location": "[parameters('location')]",
-        "vmName": "[substring(toLower(uniqueString(resourceGroup().id)), 0, 8)]",
-        "dnsSuffix": "[concat(toLower(uniqueString(resourceGroup().id)),'-',parameters('vmRole'))]",
+        "vmName": "[substring(toLower(uniqueString(resourceGroup().id)), 0, 7)]",
+        "dnsSuffix": "[concat(toLower(uniqueString(resourceGroup().id)),parameters('vmRole'))]",
         "vmSize": "[parameters('virtualMachineSize')]",
         "vmRole": "[parameters('vmRole')]",
         "nicName": "[concat(variables('vmName'),'-',variables('vmRole'),'-nic')]",
@@ -181,7 +181,7 @@
                     "vmSize": "[variables('vmSize')]"
                 },
                 "osProfile": {
-                    "computerName": "[concat(variables('vmName'), '-',variables('vmRole'))]",
+                    "computerName": "[concat(variables('vmName'),variables('vmRole'))]",
                     "adminUsername": "[parameters('adminusername')]",
                     "adminPassword": "[parameters('adminpassword')]"
                 },
